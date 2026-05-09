@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>kaaXcode</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg0:      #0d1117;
+  --bg1:      #161b22;
+  --bg2:      #1c2128;
+  --bg3:      #21262d;
+  --bg4:      #30363d;
+  --line:     #30363d;
+  --accent:   #58a6ff;
+  --accent5:  #ffa657;
+  --txt0:     #e6edf3;
+  --txt1:     #8b949e;
+  --txt2:     #6e7681;
+  --red:      #f85149;
+  --green:    #3fb950;
+  --yellow:   #d29922;
+  --tab-h:    38px;
+  --sidebar-w:240px;
+  --title-h:  38px;
+  --status-h: 24px;
+  --term-h:   200px;
+  --font-ui:  'SF Mono','Cascadia Code','Fira Code','JetBrains Mono',monospace;
+  --font-ed:  'Cascadia Code','JetBrains Mono','Fira Code','SF Mono',monospace;
+}
+
+html, body { height:100%; overflow:hidden; background:var(--bg0); color:var(--txt0); font-family:var(--font-ui); font-size:13px; }
+
+/* ── Layout ── */
+#app { display:flex; flex-direction:column; height:100vh; }
+
+/* ── Titlebar ── */
+#titlebar {
+  height:var(--title-h); background:var(--bg1); border-bottom:1px solid var(--line);
+  display:flex; align-items:center; padding:0 12px;
+  -webkit-app-region:drag; flex-shrink:0; gap:10px; user-select:none;
+}
+#titlebar .win-btns { display:flex; gap:6px; -webkit-app-region:no-drag; margin-right:8px; }
+.win-btn { width:13px; height:13px; border-radius:50%; border:none; cursor:pointer; transition:filter .15s; }
+.win-btn:hover { filter:brightness(1.4); }
+.win-btn.close { background:#ff5f57; } .win-btn.min { background:#febc2e; } .win-btn.max { background:#28c840; }
+#app-name { font-size:13px; font-weight:700; color:var(--txt0); letter-spacing:.04em; opacity:.85; }
+.kaa-logo { color:var(--accent); margin-right:2px; }
+#folder-name { font-size:11px; color:var(--txt2); margin-left:4px; }
+.titlebar-actions { margin-left:auto; display:flex; gap:6px; -webkit-app-region:no-drag; }
+.tb-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--txt1);
+  border-radius:5px; padding:3px 10px; font-size:11px; cursor:pointer;
+  display:flex; align-items:center; gap:5px; transition:background .15s,color .15s; font-family:var(--font-ui);
+}
+.tb-btn:hover { background:var(--bg4); color:var(--txt0); }
+.tb-btn.run-btn  { color:var(--green); border-color:rgba(63,185,80,.35); }
+.tb-btn.run-btn:hover { background:rgba(63,185,80,.15); }
+.tb-btn.stop-btn { color:var(--red); border-color:rgba(248,81,73,.35); display:none; }
+.tb-btn.stop-btn:hover { background:rgba(248,81,73,.15); }
+.tb-btn.preview-btn { color:var(--accent); border-color:rgba(88,166,255,.3); }
+.tb-btn.preview-btn:hover { background:rgba(88,166,255,.1); }
+
+/* ── Body ── */
+#body { display:flex; flex:1; overflow:hidden; }
+
+/* ── Activity bar ── */
+#activity-bar {
+  width:48px; flex-shrink:0; background:var(--bg1); border-right:1px solid var(--line);
+  display:flex; flex-direction:column; align-items:center; padding:8px 0; gap:4px;
+}
+.act-btn {
+  width:36px; height:36px; border-radius:8px; border:none;
+  background:transparent; color:var(--txt2); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  font-size:18px; transition:background .15s,color .15s; position:relative;
+}
+.act-btn:hover { background:var(--bg3); color:var(--txt0); }
+.act-btn.active { background:var(--bg3); color:var(--accent); }
+.act-btn .act-tooltip {
+  position:absolute; left:44px; top:50%; transform:translateY(-50%);
+  background:var(--bg4); color:var(--txt0); font-size:11px;
+  padding:3px 8px; border-radius:4px; white-space:nowrap;
+  pointer-events:none; opacity:0; transition:opacity .15s;
+  border:1px solid var(--line); z-index:999;
+}
+.act-btn:hover .act-tooltip { opacity:1; }
+
+/* ── Sidebar ── */
+#sidebar {
+  width:var(--sidebar-w); flex-shrink:0; background:var(--bg1);
+  border-right:1px solid var(--line); display:flex; flex-direction:column; overflow:hidden;
+}
+.sidebar-header {
+  height:36px; padding:0 12px; display:flex; align-items:center; justify-content:space-between;
+  border-bottom:1px solid var(--line); font-size:10px; font-weight:700; letter-spacing:.1em;
+  color:var(--txt2); text-transform:uppercase; flex-shrink:0;
+}
+.sidebar-header-actions { display:flex; gap:2px; }
+.sbar-btn {
+  background:none; border:none; color:var(--txt2); cursor:pointer;
+  padding:3px 5px; border-radius:4px; font-size:14px; line-height:1;
+  transition:background .12s,color .12s;
+}
+.sbar-btn:hover { background:var(--bg3); color:var(--txt0); }
+#file-tree { flex:1; overflow-y:auto; padding:4px 0; }
+#file-tree::-webkit-scrollbar { width:4px; }
+#file-tree::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:2px; }
+
+.tree-empty { padding:24px 16px; text-align:center; color:var(--txt2); font-size:12px; line-height:1.7; }
+.tree-empty button {
+  margin-top:10px; background:var(--accent); border:none; color:#000;
+  padding:5px 14px; border-radius:5px; cursor:pointer; font-size:12px;
+  font-weight:700; font-family:var(--font-ui);
+}
+.tree-empty button:hover { opacity:.85; }
+
+.tree-item {
+  display:flex; align-items:center; gap:5px;
+  padding:2px 8px 2px 0; cursor:pointer; border-radius:4px; margin:0 4px;
+  font-size:12.5px; color:var(--txt0); transition:background .1s; min-height:22px;
+}
+.tree-item:hover { background:var(--bg3); }
+.tree-item.selected { background:rgba(88,166,255,.15); color:var(--accent); }
+.tree-item .icon { flex-shrink:0; font-size:13px; }
+.tree-item .label { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tree-item .arrow {
+  flex-shrink:0; font-size:9px; color:var(--txt2);
+  transition:transform .15s; margin-right:2px; width:12px; text-align:center;
+}
+.tree-item.open .arrow { transform:rotate(90deg); }
+.tree-children.collapsed { display:none; }
+
+@keyframes spin { to { transform:rotate(360deg); } }
+.tree-loading { display:flex; align-items:center; gap:6px; padding:3px 8px; margin:0 4px; font-size:11px; color:var(--txt2); }
+.tree-spinner { width:10px; height:10px; border:1.5px solid var(--bg4); border-top-color:var(--accent); border-radius:50%; animation:spin .6s linear infinite; }
+
+/* ── Context menu ── */
+#ctx-menu {
+  position:fixed; z-index:9999; background:var(--bg2); border:1px solid var(--line);
+  border-radius:7px; padding:4px; min-width:160px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5); display:none;
+}
+.ctx-item { padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; display:flex; align-items:center; gap:8px; color:var(--txt0); transition:background .1s; }
+.ctx-item:hover { background:var(--bg3); }
+.ctx-item.danger { color:var(--red); }
+.ctx-sep { height:1px; background:var(--line); margin:3px 0; }
+
+/* ── Editor area ── */
+#editor-area { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+#tab-bar {
+  height:var(--tab-h); background:var(--bg1); border-bottom:1px solid var(--line);
+  display:flex; align-items:flex-end; overflow-x:auto; flex-shrink:0;
+}
+#tab-bar::-webkit-scrollbar { height:3px; }
+#tab-bar::-webkit-scrollbar-thumb { background:var(--bg4); }
+.tab {
+  display:flex; align-items:center; gap:6px; padding:0 12px 0 14px;
+  height:calc(var(--tab-h) - 2px); border-right:1px solid var(--line);
+  cursor:pointer; white-space:nowrap; flex-shrink:0; font-size:12.5px; color:var(--txt2);
+  background:var(--bg1); transition:background .12s,color .12s; min-width:100px; max-width:200px;
+}
+.tab:hover { background:var(--bg2); color:var(--txt0); }
+.tab.active { background:var(--bg0); color:var(--txt0); border-bottom:2px solid var(--accent); }
+.tab.modified .tab-name::after { content:'●'; font-size:8px; color:var(--accent5); margin-left:4px; }
+.tab-icon { font-size:13px; flex-shrink:0; }
+.tab-name { overflow:hidden; text-overflow:ellipsis; flex:1; }
+.tab-close {
+  background:none; border:none; color:var(--txt2); cursor:pointer;
+  font-size:14px; line-height:1; border-radius:3px; padding:1px 3px;
+  margin-right:-4px; flex-shrink:0; opacity:0; transition:opacity .12s,background .12s;
+}
+.tab:hover .tab-close, .tab.active .tab-close { opacity:1; }
+.tab-close:hover { background:var(--bg4); color:var(--txt0); }
+
+#welcome {
+  flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+  color:var(--txt2); gap:10px;
+}
+#welcome .logo-big { font-size:64px; }
+#welcome h2 { font-size:22px; color:var(--txt0); font-weight:700; }
+#welcome p { font-size:13px; opacity:.7; }
+.welcome-shortcuts { margin-top:20px; display:flex; flex-direction:column; gap:6px; }
+.ws-row { display:flex; align-items:center; gap:10px; font-size:12px; }
+.ws-key { background:var(--bg3); border:1px solid var(--line); border-radius:4px; padding:2px 8px; color:var(--txt0); font-size:11px; }
+
+#editor-container { flex:1; display:flex; overflow:hidden; position:relative; }
+#editor-gutter {
+  width:52px; flex-shrink:0; background:var(--bg0); border-right:1px solid var(--line);
+  overflow:hidden; padding:14px 10px 14px 0; font-family:var(--font-ed); font-size:13px;
+  line-height:21px; color:var(--txt2); text-align:right; user-select:none;
+}
+#editor {
+  flex:1; background:var(--bg0); color:var(--txt0); border:none; outline:none; resize:none;
+  font-family:var(--font-ed); font-size:13px; line-height:21px; padding:14px 16px;
+  tab-size:4; white-space:pre; overflow:auto; caret-color:var(--accent);
+}
+#editor::-webkit-scrollbar { width:8px; height:8px; }
+#editor::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:4px; }
+
+/* ── Terminal ── */
+#panel { height:var(--term-h); border-top:1px solid var(--line); display:flex; flex-direction:column; flex-shrink:0; background:var(--bg0); }
+.panel-tabs { height:32px; background:var(--bg1); border-bottom:1px solid var(--line); display:flex; align-items:center; padding:0 12px; flex-shrink:0; }
+.panel-tab { padding:0 14px; height:100%; display:flex; align-items:center; font-size:12px; color:var(--txt2); cursor:pointer; border-bottom:2px solid transparent; transition:color .12s; }
+.panel-tab.active { color:var(--txt0); border-bottom-color:var(--accent); }
+.panel-resize { height:4px; background:transparent; cursor:row-resize; flex-shrink:0; }
+.panel-resize:hover { background:var(--accent); opacity:.4; }
+#terminal-output { flex:1; overflow-y:auto; padding:8px 12px; font-family:var(--font-ed); font-size:12px; line-height:1.6; white-space:pre-wrap; word-break:break-all; }
+#terminal-output::-webkit-scrollbar { width:4px; }
+#terminal-output::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:2px; }
+.term-line { display:block; }
+.term-stdout { color:var(--txt0); } .term-stderr { color:var(--red); }
+.term-info { color:var(--txt2); font-style:italic; } .term-success { color:var(--green); } .term-error { color:var(--red); font-weight:bold; }
+#stdin-row { height:30px; border-top:1px solid var(--line); display:flex; align-items:center; flex-shrink:0; }
+#stdin-prompt { color:var(--accent); padding:0 8px; font-family:var(--font-ed); font-size:12px; }
+#stdin-input { flex:1; background:none; border:none; outline:none; color:var(--txt0); font-family:var(--font-ed); font-size:12px; padding:0 4px; }
+
+/* ── Status bar ── */
+#status-bar {
+  height:var(--status-h); background:var(--bg1); border-top:1px solid var(--line);
+  display:flex; align-items:center; padding:0 12px; gap:12px;
+  font-size:11px; color:var(--txt2); flex-shrink:0; user-select:none;
+}
+.status-item { display:flex; align-items:center; gap:4px; }
+.status-item .dot { width:6px; height:6px; border-radius:50%; }
+.status-right { margin-left:auto; display:flex; gap:12px; }
+
+/* ── Notifications ── */
+#notif { position:fixed; bottom:36px; right:16px; z-index:9998; display:flex; flex-direction:column; gap:6px; align-items:flex-end; }
+.notif-item {
+  background:var(--bg2); border:1px solid var(--line); border-radius:8px;
+  padding:9px 14px; font-size:12px; box-shadow:0 4px 20px rgba(0,0,0,.4); max-width:320px;
+  animation:slideIn .2s ease;
+}
+@keyframes slideIn { from{opacity:0;transform:translateX(20px)} to{opacity:1;transform:translateX(0)} }
+.notif-item.ok  { border-left:3px solid var(--green); }
+.notif-item.err { border-left:3px solid var(--red); }
+.notif-item.info{ border-left:3px solid var(--accent); }
+
+/* ── Search panel ── */
+#search-panel { display:none; flex-direction:column; padding:8px; gap:6px; border-bottom:1px solid var(--line); }
+#search-panel.open { display:flex; }
+.search-input { background:var(--bg3); border:1px solid var(--line); border-radius:5px; color:var(--txt0); font-family:var(--font-ui); font-size:12px; padding:5px 10px; outline:none; }
+.search-input:focus { border-color:var(--accent); }
+#search-results { max-height:200px; overflow-y:auto; font-size:11.5px; }
+.sr-item { padding:3px 6px; border-radius:3px; cursor:pointer; color:var(--txt1); display:flex; gap:6px; }
+.sr-item:hover { background:var(--bg3); color:var(--txt0); }
+.sr-line { color:var(--txt2); flex-shrink:0; }
+.sr-text .hl { background:rgba(88,166,255,.35); border-radius:2px; }
+
+/* ══════════════════════════════════════════════════════════
+   CUSTOM FILE PICKER MODAL
+══════════════════════════════════════════════════════════ */
+#picker-overlay {
+  position:fixed; inset:0; z-index:10000;
+  background:rgba(0,0,0,.65); backdrop-filter:blur(4px);
+  display:none; align-items:center; justify-content:center;
+  animation:fadeIn .15s ease;
+}
+#picker-overlay.open { display:flex; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+#picker-modal {
+  background:var(--bg1); border:1px solid var(--bg4);
+  border-radius:12px; width:580px; max-width:90vw; height:520px; max-height:80vh;
+  display:flex; flex-direction:column;
+  box-shadow:0 24px 64px rgba(0,0,0,.7);
+  animation:modalIn .18s ease;
+}
+@keyframes modalIn { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
+
+#picker-header {
+  display:flex; align-items:center; gap:10px;
+  padding:12px 16px; border-bottom:1px solid var(--line); flex-shrink:0;
+}
+#picker-title { font-size:13px; font-weight:700; color:var(--txt0); flex:1; }
+#picker-path-bar {
+  flex:1; background:var(--bg3); border:1px solid var(--line); border-radius:6px;
+  padding:4px 10px; font-size:11px; color:var(--txt1); font-family:var(--font-ui);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  cursor:default; user-select:all;
+}
+#picker-close {
+  background:none; border:none; color:var(--txt2); cursor:pointer;
+  font-size:18px; line-height:1; border-radius:5px; padding:2px 6px;
+  transition:background .12s,color .12s;
+}
+#picker-close:hover { background:var(--bg4); color:var(--txt0); }
+
+#picker-nav {
+  display:flex; align-items:center; gap:4px;
+  padding:6px 12px; border-bottom:1px solid var(--line); flex-shrink:0; flex-wrap:wrap;
+}
+.picker-nav-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--txt1);
+  border-radius:5px; padding:3px 10px; font-size:11px; cursor:pointer;
+  font-family:var(--font-ui); transition:background .12s,color .12s; white-space:nowrap;
+}
+.picker-nav-btn:hover { background:var(--bg4); color:var(--txt0); }
+.picker-nav-btn.active { background:rgba(88,166,255,.15); color:var(--accent); border-color:rgba(88,166,255,.4); }
+
+#picker-body { flex:1; overflow-y:auto; padding:4px 0; }
+#picker-body::-webkit-scrollbar { width:5px; }
+#picker-body::-webkit-scrollbar-thumb { background:var(--bg4); border-radius:3px; }
+
+.picker-item {
+  display:flex; align-items:center; gap:8px;
+  padding:5px 16px; cursor:pointer; font-size:12.5px;
+  color:var(--txt0); transition:background .08s; user-select:none;
+}
+.picker-item:hover { background:var(--bg3); }
+.picker-item.selected { background:rgba(88,166,255,.15); color:var(--accent); }
+.picker-item .p-icon { font-size:14px; flex-shrink:0; }
+.picker-item .p-name { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.picker-item .p-badge {
+  font-size:10px; color:var(--txt2); background:var(--bg3);
+  border:1px solid var(--line); border-radius:3px; padding:1px 5px;
+}
+.picker-loading { display:flex; align-items:center; gap:8px; padding:12px 16px; color:var(--txt2); font-size:12px; }
+
+#picker-footer {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 14px; border-top:1px solid var(--line); flex-shrink:0;
+}
+#picker-selected-label { flex:1; font-size:11px; color:var(--txt2); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.picker-action-btn {
+  background:var(--accent); border:none; color:#000; font-weight:700;
+  border-radius:6px; padding:5px 18px; font-size:12px; cursor:pointer;
+  font-family:var(--font-ui); transition:opacity .12px;
+}
+.picker-action-btn:hover { opacity:.85; }
+.picker-action-btn:disabled { opacity:.35; cursor:not-allowed; }
+.picker-cancel-btn {
+  background:var(--bg3); border:1px solid var(--line); color:var(--txt1);
+  border-radius:6px; padding:5px 14px; font-size:12px; cursor:pointer;
+  font-family:var(--font-ui); transition:background .12s,color .12s;
+}
+.picker-cancel-btn:hover { background:var(--bg4); color:var(--txt0); }
+
+.rename-input {
+  background:var(--bg3); border:1px solid var(--accent); border-radius:3px;
+  color:var(--txt0); font-size:12px; font-family:var(--font-ui); padding:1px 4px; outline:none; width:140px;
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TITLEBAR -->
+  <div id="titlebar">
+    <div class="win-btns">
+      <button class="win-btn close"  onclick="window.kaa.close()"></button>
+      <button class="win-btn min"    onclick="window.kaa.minimize()"></button>
+      <button class="win-btn max"    onclick="window.kaa.maximize()"></button>
+    </div>
+    <span id="app-name"><span class="kaa-logo">⌘</span> kaaXcode</span>
+    <span id="folder-name"></span>
+    <div class="titlebar-actions">
+      <button class="tb-btn" onclick="showPicker('folder')" title="Open Folder">📁 Open Folder</button>
+      <button class="tb-btn" onclick="showPicker('file')"   title="Open File">📄 Open File</button>
+      <button class="tb-btn preview-btn" id="btn-preview" onclick="openHtmlPreview()">🌐 Preview</button>
+      <button class="tb-btn run-btn"  id="btn-run"  onclick="runCode()">▶ Run</button>
+      <button class="tb-btn stop-btn" id="btn-stop" onclick="stopCode()">⏹ Stop</button>
+    </div>
+  </div>
+
+  <!-- BODY -->
+  <div id="body">
+
+    <!-- ACTIVITY BAR -->
+    <div id="activity-bar">
+      <button class="act-btn active" id="act-files"  onclick="switchActivity('files')">📁<span class="act-tooltip">Files</span></button>
+      <button class="act-btn"        id="act-search" onclick="switchActivity('search')">🔍<span class="act-tooltip">Search</span></button>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div id="sidebar">
+      <div id="view-files" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+        <div class="sidebar-header">
+          <span>EXPLORER</span>
+          <div class="sidebar-header-actions">
+            <button class="sbar-btn" onclick="newFilePrompt()"   title="New File">+📄</button>
+            <button class="sbar-btn" onclick="newFolderPrompt()" title="New Folder">+📁</button>
+            <button class="sbar-btn" onclick="refreshTree()"     title="Refresh">↺</button>
+          </div>
+        </div>
+        <div id="search-panel">
+          <input class="search-input" id="search-query" placeholder="Search open files..." oninput="doSearch()"/>
+          <div id="search-results"></div>
+        </div>
+        <div id="file-tree">
+          <div class="tree-empty" id="tree-empty-msg">
+            <div style="font-size:36px;margin-bottom:8px;">📂</div>
+            <div>No folder open</div>
+            <button onclick="showPicker('folder')">Open Folder</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDITOR AREA -->
+    <div id="editor-area">
+      <div id="tab-bar"></div>
+      <div id="editor-container">
+        <div id="welcome">
+          <div class="logo-big">⌘</div>
+          <h2>kaaXcode</h2>
+          <p>Open a folder or file to get started</p>
+          <div class="welcome-shortcuts">
+            <div class="ws-row"><span class="ws-key">Ctrl+O</span><span>Open Folder</span></div>
+            <div class="ws-row"><span class="ws-key">Ctrl+S</span><span>Save</span></div>
+            <div class="ws-row"><span class="ws-key">Ctrl+R</span><span>Run Code</span></div>
+            <div class="ws-row"><span class="ws-key">Ctrl+P</span><span>HTML Preview</span></div>
+          </div>
+        </div>
+        <div id="editor-gutter" style="display:none"></div>
+        <textarea id="editor" style="display:none" spellcheck="false"
+          oninput="onEditorInput()" onscroll="syncGutter()" onkeydown="editorKeydown(event)"></textarea>
+      </div>
+
+      <!-- TERMINAL -->
+      <div id="panel">
+        <div class="panel-resize" id="panel-resize"></div>
+        <div class="panel-tabs">
+          <div class="panel-tab active">⚡ Terminal</div>
+        </div>
+        <div id="terminal-output"></div>
+        <div id="stdin-row">
+          <span id="stdin-prompt">❯</span>
+          <input id="stdin-input" placeholder="Input (stdin)..." onkeydown="stdinKey(event)"/>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #body -->
+
+  <!-- STATUS BAR -->
+  <div id="status-bar">
+    <div class="status-item">
+      <div class="dot" id="status-dot" style="background:var(--green)"></div>
+      <span id="status-text">Ready</span>
+    </div>
+    <span id="status-file" style="color:var(--txt2)">—</span>
+    <div class="status-right">
+      <span id="status-lang">—</span>
+      <span id="status-cursor">Line 1, Column 1</span>
+      <span>UTF-8</span>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu">
+  <div class="ctx-item" id="ctx-open"      onclick="ctxAction('open')">📄 Open</div>
+  <div class="ctx-item" id="ctx-rename"    onclick="ctxAction('rename')">✏️ Rename</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item" id="ctx-newfile"   onclick="ctxAction('newfile')">+📄 New File</div>
+  <div class="ctx-item" id="ctx-newfolder" onclick="ctxAction('newfolder')">+📁 New Folder</div>
+  <div class="ctx-sep"></div>
+  <div class="ctx-item danger" id="ctx-delete" onclick="ctxAction('delete')">🗑 Delete</div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div id="notif"></div>
+
+<!-- ══════════════════════════════════════════
+     CUSTOM FILE PICKER MODAL
+══════════════════════════════════════════ -->
+<div id="picker-overlay">
+  <div id="picker-modal">
+    <div id="picker-header">
+      <span id="picker-title">Open</span>
+      <div id="picker-path-bar">/</div>
+      <button id="picker-close" onclick="closePicker()">✕</button>
+    </div>
+    <div id="picker-nav"></div>
+    <div id="picker-body"></div>
+    <div id="picker-footer">
+      <span id="picker-selected-label">No selection</span>
+      <button class="picker-cancel-btn" onclick="closePicker()">Cancel</button>
+      <button class="picker-action-btn" id="picker-ok" onclick="pickerConfirm()" disabled>Open</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════════════════
+const state = {
+  rootPath: null,
+  tree: [],
+  tabs: [],
+  activeTab: null,
+  nextTabId: 1,
+  running: false,
+  ctxTarget: null,
+  activity: 'files',
+};
+
+// ════════════════════════════════════════════════════════════════════
+//  UTILS
+// ════════════════════════════════════════════════════════════════════
+const $ = id => document.getElementById(id);
+const pathUtil = {
+  basename: p => p.replace(/\\/g,'/').split('/').filter(Boolean).pop() || p,
+  extname:  p => { const b = pathUtil.basename(p); const i = b.lastIndexOf('.'); return i>0 ? b.slice(i+1) : ''; },
+  dirname:  p => { const s = p.replace(/\\/g,'/'); const i = s.lastIndexOf('/'); return i>0 ? s.slice(0,i) : s; },
+};
+
+function fileIcon(ext, isDir) {
+  if (isDir) return '📁';
+  const map = {
+    py:'🐍', js:'🟨', mjs:'🟨', cjs:'🟨', ts:'🔷', tsx:'🔷',
+    html:'🌐', htm:'🌐', css:'🎨', scss:'🎨',
+    json:'📋', md:'📝', txt:'📄', sh:'⚙️',
+    png:'🖼️', jpg:'🖼️', jpeg:'🖼️', gif:'🖼️', svg:'🖼️', webp:'🖼️',
+    pdf:'📕', zip:'📦', tar:'📦', gz:'📦',
+    xml:'📐', yaml:'⚙️', yml:'⚙️', toml:'⚙️', ini:'⚙️',
+    sql:'🗄️', rs:'🦀', go:'🐹', java:'☕', c:'⚙️', cpp:'⚙️',
+    rb:'💎', php:'🐘', swift:'🍎', kt:'🎯',
+  };
+  return map[ext] || '📄';
+}
+
+function langFromExt(ext) {
+  const map = { py:'Python', js:'JavaScript', mjs:'JavaScript', ts:'TypeScript', html:'HTML', htm:'HTML', css:'CSS', json:'JSON', md:'Markdown', txt:'Text', sh:'Shell', rs:'Rust', go:'Go', java:'Java', c:'C', cpp:'C++' };
+  return map[ext] || (ext ? ext.toUpperCase() : 'Text');
+}
+
+function notify(msg, type='info', ms=3000) {
+  const el = document.createElement('div');
+  el.className = `notif-item ${type}`;
+  el.textContent = msg;
+  $('notif').appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+
+function setStatus(text, color) {
+  $('status-text').textContent = text;
+  $('status-dot').style.background = color || 'var(--green)';
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  CUSTOM FILE PICKER
+// ════════════════════════════════════════════════════════════════════
+const picker = {
+  mode: 'folder',      // 'folder' | 'file'
+  currentPath: null,
+  items: [],
+  selected: null,      // { path, isDir }
+  history: [],
+  loading: false,
+};
+
+async function showPicker(mode) {
+  picker.mode = mode;
+  picker.selected = null;
+  picker.history = [];
+  $('picker-title').textContent = mode === 'folder' ? 'Open Folder' : 'Open File';
+  $('picker-ok').textContent = mode === 'folder' ? 'Select Folder' : 'Open';
+  $('picker-ok').disabled = mode === 'file';
+  $('picker-overlay').classList.add('open');
+
+  await pickerLoadRoots();
+}
+
+function closePicker() {
+  $('picker-overlay').classList.remove('open');
+}
+
+async function pickerLoadRoots() {
+  picker.currentPath = null;
+  picker.selected = null;
+  updatePickerFooter();
+  renderPickerNav([]);
+  showPickerLoading();
+
+  const roots = await window.kaa.getRoots();
+  picker.items = roots;
+  renderPickerBody(roots);
+  $('picker-path-bar').textContent = 'Computer';
+}
+
+async function pickerNavigate(dirPath, pushHistory = true) {
+  if (picker.loading) return;
+  if (pushHistory && picker.currentPath !== null) {
+    picker.history.push(picker.currentPath);
+  }
+  picker.currentPath = dirPath;
+  picker.selected = null;
+  updatePickerFooter();
+  showPickerLoading();
+
+  const items = await window.kaa.readDir(dirPath);
+  picker.items = items;
+
+  renderPickerBody(items);
+
+  const parts = dirPath.replace(/\\/g, '/').split('/').filter(Boolean);
+  renderPickerNav(parts, dirPath);
+  $('picker-path-bar').textContent = dirPath;
+}
+
+function showPickerLoading() {
+  picker.loading = true;
+  $('picker-body').innerHTML = '<div class="picker-loading"><div class="tree-spinner"></div><span>Loading...</span></div>';
+}
+
+function renderPickerBody(items) {
+  picker.loading = false;
+  const body = $('picker-body');
+  body.innerHTML = '';
+
+  if (items.length === 0) {
+    body.innerHTML = '<div style="padding:20px;text-align:center;color:var(--txt2);font-size:12px;">Folder is empty</div>';
+    return;
+  }
+
+  const visible = picker.mode === 'file' ? items : items;
+
+  visible.forEach(item => {
+    const el = document.createElement('div');
+    el.className = 'picker-item';
+    if (!item.isDir && picker.mode === 'folder') {
+      el.style.opacity = '0.4';
+      el.style.pointerEvents = 'none';
+    }
+
+    const isSelected = picker.selected && picker.selected.path === item.path;
+    if (isSelected) el.classList.add('selected');
+
+    el.innerHTML = `
+      <span class="p-icon">${fileIcon(item.ext, item.isDir)}</span>
+      <span class="p-name">${item.name}</span>
+      ${item.isDir ? '<span class="p-badge">folder</span>' : `<span class="p-badge">${item.ext || 'file'}</span>`}
+    `;
+
+    el.addEventListener('click', () => pickerItemClick(item, el));
+    el.addEventListener('dblclick', () => pickerItemDblClick(item));
+    body.appendChild(el);
+  });
+}
+
+function pickerItemClick(item, el) {
+  $('picker-body').querySelectorAll('.picker-item').forEach(e => e.classList.remove('selected'));
+
+  if (picker.mode === 'folder') {
+    if (item.isDir) {
+      picker.selected = item;
+      el.classList.add('selected');
+      $('picker-ok').disabled = false;
+    }
+  } else {
+    if (!item.isDir) {
+      picker.selected = item;
+      el.classList.add('selected');
+      $('picker-ok').disabled = false;
+    }
+  }
+  updatePickerFooter();
+}
+
+async function pickerItemDblClick(item) {
+  if (item.isDir) {
+    await pickerNavigate(item.path);
+  } else if (picker.mode === 'file') {
+    picker.selected = item;
+    pickerConfirm();
+  }
+}
+
+async function pickerConfirm() {
+  if (!picker.selected && picker.mode === 'folder' && picker.currentPath) {
+    picker.selected = { path: picker.currentPath, isDir: true };
+  }
+  if (!picker.selected) return;
+
+  closePicker();
+
+  if (picker.mode === 'folder') {
+    await openFolderPath(picker.selected.path);
+  } else {
+    await openFile(picker.selected.path);
+  }
+}
+
+function updatePickerFooter() {
+  const lbl = $('picker-selected-label');
+  if (picker.selected) {
+    lbl.textContent = picker.selected.path;
+  } else if (picker.mode === 'folder' && picker.currentPath) {
+    lbl.textContent = picker.currentPath;
+    $('picker-ok').disabled = false;
+  } else {
+    lbl.textContent = 'No selection';
+    if (picker.mode === 'file') $('picker-ok').disabled = true;
+  }
+}
+
+function renderPickerNav(parts, fullPath) {
+  const nav = $('picker-nav');
+  nav.innerHTML = '';
+
+  if (picker.history.length > 0) {
+    const back = document.createElement('button');
+    back.className = 'picker-nav-btn';
+    back.textContent = '← Back';
+    back.onclick = async () => {
+      const prev = picker.history.pop();
+      if (prev === null) await pickerLoadRoots();
+      else await pickerNavigate(prev, false);
+    };
+    nav.appendChild(back);
+  }
+
+  const home = document.createElement('button');
+  home.className = 'picker-nav-btn';
+  home.textContent = '🖥 Computer';
+  home.onclick = async () => {
+    picker.history.push(picker.currentPath);
+    await pickerLoadRoots();
+  };
+  nav.appendChild(home);
+
+  if (parts.length > 0 && fullPath) {
+    const sep = fullPath.includes('\\') ? '\\' : '/';
+    let cumulative = fullPath.startsWith('/') ? '' : '';
+
+    const rawParts = fullPath.replace(/\\/g, '/').split('/').filter(Boolean);
+    rawParts.forEach((part, i) => {
+      let segPath;
+      if (i === 0 && fullPath.match(/^[A-Z]:/i)) {
+        segPath = part + '\\';
+      } else {
+        segPath = (fullPath.startsWith('/') ? '/' : '') + rawParts.slice(0, i+1).join('/');
+      }
+
+      const btn = document.createElement('button');
+      btn.className = 'picker-nav-btn';
+      btn.textContent = part;
+      if (segPath === fullPath) btn.classList.add('active');
+      btn.onclick = async () => {
+        picker.history.push(picker.currentPath);
+        await pickerNavigate(segPath, false);
+      };
+      nav.appendChild(btn);
+    });
+  }
+}
+
+$('picker-overlay').addEventListener('click', e => {
+  if (e.target === $('picker-overlay')) closePicker();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('picker-overlay').classList.contains('open')) {
+    closePicker();
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  FOLDER / FILE OPEN
+// ════════════════════════════════════════════════════════════════════
+async function openFolderPath(p) {
+  state.rootPath = p;
+  $('folder-name').textContent = pathUtil.basename(p) || p;
+  state.tree = await window.kaa.readDir(p);
+  renderTree();
+  notify('Folder opened: ' + (pathUtil.basename(p) || p), 'ok');
+}
+
+async function refreshTree() {
+  if (!state.rootPath) return;
+  state.tree = await window.kaa.readDir(state.rootPath);
+  renderTree();
+}
+
+async function openFile(filePath) {
+  const existing = state.tabs.find(t => t.path === filePath);
+  if (existing) { activateTab(existing.id); return; }
+
+  const content = await window.kaa.readFile(filePath);
+  if (content === null) { notify('Failed to read file (too large or binary)', 'err'); return; }
+
+  const ext = pathUtil.extname(filePath);
+  const tab = { id: state.nextTabId++, path: filePath, name: pathUtil.basename(filePath), content, modified: false, ext };
+  state.tabs.push(tab);
+  activateTab(tab.id);
+  renderTabs();
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════════════════════════
+function activateTab(id) {
+  if (state.activeTab === id) return;
+  saveEditorToTab();
+  state.activeTab = id;
+  const tab = state.tabs.find(t => t.id === id);
+  if (!tab) return;
+
+  $('welcome').style.display = 'none';
+  $('editor').style.display = 'block';
+  $('editor-gutter').style.display = 'block';
+  $('editor').value = tab.content;
+  updateGutter();
+  updateStatusBar(tab);
+  renderTabs();
+  $('btn-preview').style.display = ['html','htm'].includes(tab.ext) ? '' : 'none';
+  $('editor').focus();
+}
+
+function closeTab(id, e) {
+  if (e) e.stopPropagation();
+  const tab = state.tabs.find(t => t.id === id);
+  if (tab?.modified && !confirm(`"${tab.name}" has unsaved changes. Close anyway?`)) return;
+  const idx = state.tabs.findIndex(t => t.id === id);
+  state.tabs.splice(idx, 1);
+
+  if (state.activeTab === id) {
+    state.activeTab = null;
+    if (state.tabs.length > 0) activateTab(state.tabs[Math.max(0, idx-1)].id);
+    else {
+      $('editor').style.display = 'none';
+      $('editor-gutter').style.display = 'none';
+      $('welcome').style.display = 'flex';
+      $('status-file').textContent = '—'; $('status-lang').textContent = '—';
+    }
+  }
+  renderTabs();
+}
+
+function saveEditorToTab() {
+  if (!state.activeTab) return;
+  const tab = state.tabs.find(t => t.id === state.activeTab);
+  if (tab) tab.content = $('editor').value;
+}
+
+function renderTabs() {
+  const bar = $('tab-bar');
+  bar.innerHTML = '';
+  state.tabs.forEach(tab => {
+    const el = document.createElement('div');
+    el.className = `tab${tab.id === state.activeTab ? ' active' : ''}${tab.modified ? ' modified' : ''}`;
+    el.innerHTML = `<span class="tab-icon">${fileIcon(tab.ext, false)}</span><span class="tab-name">${tab.name}</span><button class="tab-close" onclick="closeTab(${tab.id},event)">✕</button>`;
+    el.addEventListener('click', () => activateTab(tab.id));
+    el.addEventListener('mousedown', e => { if (e.button===1) { e.preventDefault(); closeTab(tab.id); } });
+    bar.appendChild(el);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  EDITOR
+// ════════════════════════════════════════════════════════════════════
+function onEditorInput() {
+  const tab = state.tabs.find(t => t.id === state.activeTab);
+  if (!tab) return;
+  const val = $('editor').value;
+  if (val !== tab.content) { tab.content = val; if (!tab.modified) { tab.modified = true; renderTabs(); } }
+  updateGutter(); updateCursorStatus();
+}
+
+function editorKeydown(e) {
+  if (e.key === 'Tab') {
+    e.preventDefault();
+    const ta = $('editor'), s = ta.selectionStart, en = ta.selectionEnd;
+    if (s === en) { ta.value = ta.value.slice(0,s) + '    ' + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s+4; }
+    else {
+      const lines = ta.value.split('\n'); let cc=0, sl=-1, el=-1;
+      for (let i=0;i<lines.length;i++) { if (cc+lines[i].length>=s&&sl<0) sl=i; if (cc+lines[i].length>=en-1){el=i;break;} cc+=lines[i].length+1; }
+      for (let i=sl;i<=el;i++) lines[i]='    '+lines[i];
+      ta.value = lines.join('\n');
+    }
+    onEditorInput(); return;
+  }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveFile();return;}
+  if ((e.ctrlKey||e.metaKey)&&e.key==='r'){e.preventDefault();runCode();return;}
+  if ((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();openHtmlPreview();return;}
+  const pairs={'(':')','{':'}','[':']','"':'"',"'":"'"};
+  if (pairs[e.key]) {
+    e.preventDefault();
+    const ta=$('editor'),s=ta.selectionStart,en=ta.selectionEnd;
+    if (s!==en){const sel=ta.value.slice(s,en);ta.value=ta.value.slice(0,s)+e.key+sel+pairs[e.key]+ta.value.slice(en);ta.selectionStart=s+1;ta.selectionEnd=en+1;}
+    else{ta.value=ta.value.slice(0,s)+e.key+pairs[e.key]+ta.value.slice(s);ta.selectionStart=ta.selectionEnd=s+1;}
+    onEditorInput();
+  }
+}
+
+function updateGutter() {
+  const n = $('editor').value.split('\n').length;
+  let h=''; for(let i=1;i<=n;i++) h+=i+'\n';
+  $('editor-gutter').textContent = h;
+}
+function syncGutter() { $('editor-gutter').scrollTop=$('editor').scrollTop; }
+function updateCursorStatus() {
+  const ta=$('editor'), txt=ta.value.slice(0,ta.selectionStart), lines=txt.split('\n');
+  $('status-cursor').textContent=`Line ${lines.length}, Column ${lines[lines.length-1].length+1}`;
+}
+function updateStatusBar(tab) { $('status-file').textContent=tab.name; $('status-lang').textContent=langFromExt(tab.ext); }
+
+// ════════════════════════════════════════════════════════════════════
+//  SAVE
+// ════════════════════════════════════════════════════════════════════
+async function saveFile() {
+  saveEditorToTab();
+  const tab = state.tabs.find(t=>t.id===state.activeTab);
+  if (!tab) return;
+  const ok = await window.kaa.writeFile(tab.path, tab.content);
+  if (ok) { tab.modified=false; renderTabs(); notify(`Saved: ${tab.name}`,'ok',1500); setStatus('Saved','var(--green)'); }
+  else notify('Save failed!','err');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  FILE TREE (lazy)
+// ════════════════════════════════════════════════════════════════════
+const expanded = new Set();
+const loadingDirs = new Set();
+
+function renderTree() {
+  const container = $('file-tree');
+  $('tree-empty-msg').style.display = state.tree.length ? 'none' : 'block';
+  [...container.children].forEach(c => { if (c.id!=='tree-empty-msg') c.remove(); });
+  container.appendChild(renderItems(state.tree, 0));
+}
+
+function renderItems(items, indent) {
+  const frag = document.createDocumentFragment();
+  items.forEach(item => {
+    const isOpen = item.isDir && expanded.has(item.path);
+    const el = document.createElement('div');
+    el.className = 'tree-item' + (isOpen ? ' open' : '');
+    el.style.paddingLeft = (indent+8) + 'px';
+    el.dataset.path = item.path;
+    el.innerHTML = `
+      ${item.isDir ? '<span class="arrow">▶</span>' : '<span style="width:12px;display:inline-block"></span>'}
+      <span class="icon">${fileIcon(item.ext, item.isDir)}</span>
+      <span class="label">${item.name}</span>
+    `;
+    el.addEventListener('click', e => { e.stopPropagation(); treeItemClick(item, el); });
+    el.addEventListener('contextmenu', e => { e.preventDefault(); showCtxMenu(e, item); });
+    frag.appendChild(el);
+
+    if (item.isDir) {
+      const sub = document.createElement('div');
+      sub.className = 'tree-children' + (isOpen ? '' : ' collapsed');
+      if (isOpen) {
+        if (item.children && item.children.length > 0) sub.appendChild(renderItems(item.children, indent+14));
+        else if (loadingDirs.has(item.path)) {
+          const sp = document.createElement('div');
+          sp.className='tree-loading'; sp.style.paddingLeft=(indent+22)+'px';
+          sp.innerHTML='<div class="tree-spinner"></div><span>Loading...</span>';
+          sub.appendChild(sp);
+        }
+      }
+      frag.appendChild(sub);
+    }
+  });
+  return frag;
+}
+
+async function treeItemClick(item, el) {
+  if (item.isDir) {
+    if (expanded.has(item.path)) { expanded.delete(item.path); renderTree(); }
+    else {
+      expanded.add(item.path);
+      if (!item.children || item.children.length === 0) {
+        loadingDirs.add(item.path); renderTree();
+        try { item.children = await window.kaa.readDir(item.path); }
+        catch { item.children = []; notify('Failed to read: '+item.name,'err'); }
+        finally { loadingDirs.delete(item.path); }
+      }
+      renderTree();
+    }
+  } else {
+    document.querySelectorAll('.tree-item.selected').forEach(e=>e.classList.remove('selected'));
+    el.classList.add('selected');
+    openFile(item.path);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  CONTEXT MENU
+// ════════════════════════════════════════════════════════════════════
+function showCtxMenu(e, item) {
+  state.ctxTarget = item;
+  const menu = $('ctx-menu');
+  menu.style.display = 'block';
+  menu.style.left = e.clientX+'px'; menu.style.top = e.clientY+'px';
+  $('ctx-open').style.display = item.isDir ? 'none' : 'flex';
+  const r = menu.getBoundingClientRect();
+  if (r.right>window.innerWidth) menu.style.left=(e.clientX-r.width)+'px';
+  if (r.bottom>window.innerHeight) menu.style.top=(e.clientY-r.height)+'px';
+}
+document.addEventListener('click', ()=>{ $('ctx-menu').style.display='none'; });
+
+async function ctxAction(action) {
+  $('ctx-menu').style.display='none';
+  const item = state.ctxTarget; if (!item) return;
+  if (action==='open') await openFile(item.path);
+  else if (action==='delete') {
+    if (!confirm(`Delete "${item.name}"?`)) return;
+    await window.kaa.deleteItem(item.path); await refreshTree();
+    const tab=state.tabs.find(t=>t.path===item.path); if(tab) closeTab(tab.id);
+    notify('Deleted: '+item.name,'ok');
+  }
+  else if (action==='newfile')   newFileIn(item.isDir ? item.path : pathUtil.dirname(item.path));
+  else if (action==='newfolder') newFolderIn(item.isDir ? item.path : pathUtil.dirname(item.path));
+  else if (action==='rename')    startRename(item);
+}
+
+async function startRename(item) {
+  const el = document.querySelector(`.tree-item[data-path="${CSS.escape(item.path)}"] .label`);
+  if (!el) return;
+  const old = el.textContent;
+  el.innerHTML = `<input class="rename-input" value="${old}" id="rename-inp"/>`;
+  const inp = document.getElementById('rename-inp');
+  inp.focus(); inp.select();
+  async function doRename() {
+    const n=inp.value.trim();
+    if (!n||n===old){el.textContent=old;return;}
+    notify('Rename: use your OS Finder/Explorer for this','info');
+    el.textContent=old;
+  }
+  inp.addEventListener('blur', doRename);
+  inp.addEventListener('keydown', e=>{if(e.key==='Enter')doRename();if(e.key==='Escape')el.textContent=old;});
+}
+
+async function newFilePrompt() { if(!state.rootPath){notify('Open a folder first','err');return;} newFileIn(state.rootPath); }
+async function newFolderPrompt() { if(!state.rootPath){notify('Open a folder first','err');return;} newFolderIn(state.rootPath); }
+async function newFileIn(dir) { const n=prompt('File name:'); if(!n) return; const p=await window.kaa.newFile(dir,n); await refreshTree(); await openFile(p); }
+async function newFolderIn(dir) { const n=prompt('Folder name:'); if(!n) return; await window.kaa.newFolder(dir,n); await refreshTree(); expanded.add(dir); renderTree(); }
+
+// ════════════════════════════════════════════════════════════════════
+//  SEARCH (open tabs only)
+// ════════════════════════════════════════════════════════════════════
+function switchActivity(name) {
+  state.activity = name;
+  document.querySelectorAll('.act-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('act-'+name)?.classList.add('active');
+  const sp=$('search-panel');
+  if(name==='search'){sp.classList.add('open');$('search-query').focus();}
+  else{sp.classList.remove('open');$('search-results').innerHTML='';}
+}
+
+function doSearch() {
+  const q=$('search-query').value.trim(), out=$('search-results');
+  if(!q){out.innerHTML='';return;}
+  const results=[];
+  state.tabs.forEach(tab=>{
+    tab.content.split('\n').forEach((line,i)=>{
+      if(line.toLowerCase().includes(q.toLowerCase()))
+        results.push({path:tab.path,name:tab.name,line:i+1,text:line.trim()});
+    });
+  });
+  if(!results.length){out.innerHTML='<div style="padding:8px;color:var(--txt2);font-size:11px;">No results</div>';return;}
+  const re=new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi');
+  out.innerHTML=results.slice(0,50).map(r=>{
+    const safe=r.text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const hl=safe.replace(re,m=>`<span class="hl">${m}</span>`);
+    return `<div class="sr-item" onclick="openFile('${r.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')"><span class="sr-line">${r.line}</span><span class="sr-text">${r.name}: ${hl}</span></div>`;
+  }).join('');
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  RUNNER
+// ════════════════════════════════════════════════════════════════════
+function termWrite(text, cls) {
+  const out=$('terminal-output'), span=document.createElement('span');
+  span.className='term-line '+cls; span.textContent=text; out.appendChild(span); out.scrollTop=out.scrollHeight;
+}
+function termClear() { $('terminal-output').innerHTML=''; }
+
+async function runCode() {
+  saveEditorToTab();
+  const tab=state.tabs.find(t=>t.id===state.activeTab);
+  if(!tab){notify('No file open','err');return;}
+  if(!['py','js','mjs','cjs'].includes(tab.ext)){notify('Only .py and .js files can be run','err');return;}
+  termClear(); termWrite(`▶ Running: ${tab.name}\n`,'term-info');
+  setStatus('Running...','var(--yellow)');
+  state.running=true; $('btn-run').style.display='none'; $('btn-stop').style.display='';
+  const res=await window.kaa.runStart(tab.path, tab.content);
+  if(res.error){termWrite('❌ Error: '+res.error,'term-error');resetRunState();}
+}
+function stopCode() { window.kaa.runStop(); }
+function resetRunState() { state.running=false; $('btn-run').style.display=''; $('btn-stop').style.display='none'; setStatus('Ready','var(--green)'); }
+
+async function openHtmlPreview() {
+  saveEditorToTab();
+  const tab=state.tabs.find(t=>t.id===state.activeTab);
+  if(!tab||!['html','htm'].includes(tab.ext)){notify('Only HTML files can be previewed','err');return;}
+  await window.kaa.previewOpen(tab.path,tab.content); notify('HTML Preview opened','ok');
+}
+
+function stdinKey(e) {
+  if(e.key==='Enter'){const v=$('stdin-input').value;window.kaa.runStdin(v);termWrite('> '+v,'term-info');$('stdin-input').value='';}
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  IPC LISTENERS
+// ════════════════════════════════════════════════════════════════════
+window.kaa.onStdout(d=>termWrite(d,'term-stdout'));
+window.kaa.onStderr(d=>termWrite(d,'term-stderr'));
+window.kaa.onRunDone(({code,killed})=>{
+  if(killed) termWrite('\n⏹ Process stopped\n','term-info');
+  else termWrite(`\n${code===0?'✅':'❌'} Process exited with code ${code}\n`,code===0?'term-success':'term-error');
+  resetRunState();
+});
+window.kaa.onRunError(msg=>{termWrite('❌ '+msg,'term-error');resetRunState();});
+
+// ════════════════════════════════════════════════════════════════════
+//  PANEL RESIZE
+// ════════════════════════════════════════════════════════════════════
+let resizing=false,resizeStart=0,resizeH=0;
+$('panel-resize').addEventListener('mousedown',e=>{resizing=true;resizeStart=e.clientY;resizeH=$('panel').offsetHeight;document.body.style.cursor='row-resize';document.body.style.userSelect='none';});
+document.addEventListener('mousemove',e=>{if(!resizing)return;const d=resizeStart-e.clientY;$('panel').style.height=Math.max(60,Math.min(600,resizeH+d))+'px';});
+document.addEventListener('mouseup',()=>{resizing=false;document.body.style.cursor='';document.body.style.userSelect='';});
+
+// ════════════════════════════════════════════════════════════════════
+//  GLOBAL SHORTCUTS
+// ════════════════════════════════════════════════════════════════════
+document.addEventListener('keydown', e=>{
+  if($('picker-overlay').classList.contains('open')) return;
+  if((e.ctrlKey||e.metaKey)&&e.key==='o'){e.preventDefault();showPicker('folder');}
+  if((e.ctrlKey||e.metaKey)&&e.key==='s'){e.preventDefault();saveFile();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='r'){e.preventDefault();runCode();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='p'){e.preventDefault();openHtmlPreview();}
+  if((e.ctrlKey||e.metaKey)&&e.key==='w'){e.preventDefault();if(state.activeTab)closeTab(state.activeTab);}
+  if((e.ctrlKey||e.metaKey)&&e.key==='`'){e.preventDefault();$('stdin-input').focus();}
+});
+
+$('editor').addEventListener('click',updateCursorStatus);
+$('editor').addEventListener('keyup',updateCursorStatus);
+$('editor').addEventListener('scroll',syncGutter);
+
+setStatus('Ready','var(--green)');
+$('btn-preview').style.display='none';
+</script>
+</body>
+</html>
