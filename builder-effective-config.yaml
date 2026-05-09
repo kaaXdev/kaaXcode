@@ -1,0 +1,9 @@
+directories:
+  output: dist
+  buildResources: build
+appId: com.kaapc.kaaxcode
+win:
+  target: portable
+  icon: build/icon.ico
+files: []
+electronVersion: 41.1.1
